@@ -1,0 +1,12 @@
+﻿{
+  "StatusCode": 200,
+  "Headers": {
+    "Content-Type": "application/json; charset=utf-8",
+    "CustomHeader":  "Cats are fun"
+  },
+  "Body":
+    {
+      "Id": 787,
+      "Name": "Sky"
+    }
+}

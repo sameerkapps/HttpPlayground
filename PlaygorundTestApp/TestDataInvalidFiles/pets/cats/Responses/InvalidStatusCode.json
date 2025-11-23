@@ -1,0 +1,10 @@
+﻿{
+  "StatusCode": 199,
+  "Headers": {
+    "Content-Type": "application/json; charset=utf-8"
+  },
+  "Body": {
+    "Id": 48,
+    "Name":  "Foo"
+  }
+}

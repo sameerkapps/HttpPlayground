@@ -1,0 +1,11 @@
+﻿{
+  "StatusCode": 200,
+  "Headers": {
+    "Content-Type": "application/json; charset=utf-8",
+    "CustomHdr":  "Cats are fun"
+  },
+  "Body": {
+      "Id": 1,
+      "Name": "First"
+    }
+}

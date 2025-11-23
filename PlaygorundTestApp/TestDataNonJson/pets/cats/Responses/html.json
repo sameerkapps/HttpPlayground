@@ -1,0 +1,8 @@
+﻿{
+  "StatusCode": 200,
+  "Headers": {
+    "Content-Type": "text/html; charset=utf-8"
+  },
+  
+  "Body": "<!DOCTYPE html>\n<html>\n<head>\n    <title>My Simple Page</title>\n</head>\n<body>\n    <h1>Hello, World!</h1>\n    <p>This is a simple HTML page.</p>\n</body>\n</html>"
+}

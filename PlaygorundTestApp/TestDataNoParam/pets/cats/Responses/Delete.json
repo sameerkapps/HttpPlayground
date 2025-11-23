@@ -1,0 +1,10 @@
+﻿{
+  "StatusCode": 200,
+  "Headers": {
+    "Content-Type": "application/json; charset=utf-8"
+  },
+  "Body": {
+    "Id": 42,
+    "Name": "Never"
+  }
+}
