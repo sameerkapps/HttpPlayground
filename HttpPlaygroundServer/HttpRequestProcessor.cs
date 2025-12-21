@@ -2,17 +2,18 @@
 // Copyright (c) 2025 Sameer Khandekar                //
 // License: MIT License.                              //
 ////////////////////////////////////////////////////////
-using System;
-using System.Net;
-using System.Threading.Tasks;
-
 using HttpPlaygroundServer.Model;
+using System;
+using System.Collections.Generic;
+using System.Net;
+using System.Text.Json.Nodes;
+using System.Threading.Tasks;
 
 namespace HttpPlaygroundServer
 {
-    internal class HttpRequestProcessor
+    public class HttpRequestProcessor
     {
-        StorageManager _storeManager = new StorageManager();
+        StorageManager _storeManager = null;
         /// <summary>
         /// Processes an incoming HTTP request and generates an appropriate response.
         /// </summary>
@@ -22,8 +23,10 @@ namespace HttpPlaygroundServer
         /// response body.</remarks>
         /// <param name="context">The <see cref="HttpListenerContext"/> containing the HTTP request and response objects.</param>
         /// <returns></returns>
-        internal async Task ProcessRequests(HttpListenerContext context)
+        internal protected virtual async Task ProcessRequests(HttpListenerContext context)
         {
+            // Create a new store manager for each new request
+            _storeManager = new StorageManager();
             // Retrieve the HTTP request from the context
             HttpListenerRequest request = context.Request;
 
@@ -45,7 +48,7 @@ namespace HttpPlaygroundServer
             }
 
             // Send an HTTP response based on the request's HTTP method and URL
-            await SendResponse(request.HttpMethod, request.Url, context.Response).ConfigureAwait(false);
+            await SendResponse(request, context.Response).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -57,7 +60,7 @@ namespace HttpPlaygroundServer
         /// <param name="request">The <see cref="HttpListenerRequest"/> containing the HTTP request data to be stored. This parameter cannot
         /// be <see langword="null"/>.</param>
         /// <returns>A task that represents the asynchronous operation.</returns>
-        private async Task StoreRequest(HttpListenerRequest request)
+        protected virtual async Task StoreRequest(HttpListenerRequest request)
         {
             // Parse the result
             RequestStorage rs = HttpRequestParser.Parse(request);
@@ -65,6 +68,14 @@ namespace HttpPlaygroundServer
             // Write the request
             await _storeManager.StoreRequest(rs).ConfigureAwait(false);
         }
+
+        // TODOs
+        // - Call back
+        // D- Change Signature to SendResponse(HttpListenerRequest, HttpListenerResponse)
+        // D- make this method virtual
+        // D- break into parts to create response from RS
+        // D - Add a method to store manager retriving response given filename
+        // 
 
         /// <summary>
         /// Sends an HTTP response based on the specified HTTP method and URL.
@@ -77,59 +88,86 @@ namespace HttpPlaygroundServer
         /// <param name="url">The URL of the request, used to retrieve the corresponding response data.</param>
         /// <param name="response">The <see cref="HttpListenerResponse"/> object to which the response will be written.</param>
         /// <returns></returns>
-        private async Task SendResponse(string httpMethod, Uri url, HttpListenerResponse response)
+        protected virtual async Task SendResponse(HttpListenerRequest request, HttpListenerResponse response)
         {
-            // Initialize the response body as an empty string
-            string strBody = string.Empty;
+            string responseBody = string.Empty;
+
             try
             {
-                // Retrieve the response data from the storage manager based on the HTTP method and URL
-                ResponseStorage rs = await _storeManager.RetrieveResponse(httpMethod, url.AbsoluteUri).ConfigureAwait(false);
+                ResponseStorage responseData = await SimulateServerHandling(request).ConfigureAwait(false);
 
-                // Set the HTTP status code for the response
-                if (Enum.IsDefined(typeof(HttpStatusCode), rs.StatusCode))
-                {
-                    response.StatusCode = (int)rs.StatusCode;
-                }
-                else
-                {
-                    throw new Exception($"Invalid StatusCode {rs.StatusCode} in json");
-                }
+                SetStatusCode(response, responseData.StatusCode);
+                ApplyHeaders(response, responseData.Headers);
 
-                // Add headers to the response if they exist
-                bool isJson = true;
-                if (rs.Headers != null)
-                    foreach (var kvp in rs.Headers)
-                    {
-                        response.Headers[kvp.Key] = kvp.Value;
-                        if(kvp.Key == "Content-Type" && 
-                            !kvp.Value.StartsWith("application/json"))
-                        {
-                            isJson = false;
-                        }
-                    }
-
-                // Convert the response body to a JSON string if it exists
-                if (isJson)
-                {
-                    strBody = rs.Body?.ToJsonString();
-                }
-                else
-                {
-                    strBody = rs.Body?.ToString();
-                }
+                responseBody = FormatResponseBody(responseData.Body, response);
             }
             catch (Exception ex)
             {
-                // If an exception occurs, set the status code to 500 (Internal Server Error)
-                response.StatusCode = (int)HttpStatusCode.InternalServerError;
-
-                // Set the response body to the exception message
-                strBody = ex.Message;
+                HandleResponseError(response, ex, out responseBody);
             }
 
-            // Write the response body to the output stream
-            await WriteResponseBody(response, strBody).ConfigureAwait(false);
+            await WriteResponseBody(response, responseBody).ConfigureAwait(false);
+        }
+
+        protected virtual async Task<ResponseStorage> SimulateServerHandling(HttpListenerRequest request)
+        {
+            // Retrieve the response data from the storage manager based on the HTTP method
+            return await _storeManager.RetrieveResponseByVerb(request.HttpMethod).ConfigureAwait(false);
+        }
+
+        private void SetStatusCode(HttpListenerResponse response, HttpStatusCode statusCode)
+        {
+            if (!Enum.IsDefined(typeof(HttpStatusCode), statusCode))
+            {
+                throw new InvalidOperationException($"Invalid StatusCode '{statusCode}' in response data");
+            }
+
+            response.StatusCode = (int)statusCode;
+        }
+
+        private void ApplyHeaders(HttpListenerResponse response, IDictionary<string, string> headers)
+        {
+            if (headers == null)
+            {
+                return;
+            }
+
+            foreach (var header in headers)
+            {
+                response.Headers[header.Key] = header.Value;
+            }
+        }
+
+        private string FormatResponseBody(JsonNode body, HttpListenerResponse response)
+        {
+            if (body == null)
+            {
+                return string.Empty;
+            }
+
+            bool isJsonResponse = IsJsonContentType(response);
+
+            return isJsonResponse
+                ? body.ToJsonString()
+                : body.ToString();
+        }
+
+        private bool IsJsonContentType(HttpListenerResponse response)
+        {
+            string contentType = response.Headers["Content-Type"];
+
+            if (string.IsNullOrEmpty(contentType))
+            {
+                return true; // Default to JSON if no Content-Type is specified
+            }
+
+            return contentType.StartsWith("application/json", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private void HandleResponseError(HttpListenerResponse response, Exception ex, out string errorBody)
+        {
+            response.StatusCode = (int)HttpStatusCode.InternalServerError;
+            errorBody = ex.Message;
         }
 
         /// <summary>

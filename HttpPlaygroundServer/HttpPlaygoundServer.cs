@@ -15,6 +15,12 @@ namespace HttpPlaygroundServer
     /// </summary>
     public class HttpPlaygoundServer
     {
+        HttpRequestProcessor _rp = null;
+        public HttpPlaygoundServer(HttpRequestProcessor rp = null)
+        {
+            _rp = rp ?? new HttpRequestProcessor();
+        }
+
         /// <summary>
         /// Starts an HTTP listener that processes incoming HTTP requests asynchronously.
         /// </summary>
@@ -47,9 +53,8 @@ namespace HttpPlaygroundServer
                 listener.GetContextAsync().ContinueWith(async (task) =>
                 {
                     await Task.Run(async () =>
-                    {
-                        HttpRequestProcessor rp = new HttpRequestProcessor();
-                        await rp.ProcessRequests(task.Result).ConfigureAwait(false);
+                    {                        
+                        await _rp.ProcessRequests(task.Result).ConfigureAwait(false);
                     }).ConfigureAwait(false);
                 });
             }

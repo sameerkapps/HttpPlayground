@@ -40,10 +40,6 @@ internal class Program
         Console.WriteLine($"{(result ? string.Empty : "--- FAILED- -->")} Testing Data with no param returned {result}");
         Console.WriteLine("------------------------------------");
 
-        result = await TestDataWithQueryParam().ConfigureAwait(false);
-        Console.WriteLine($"{(result ? string.Empty : "--- FAILED- -->")} Testing Data with Query param returned {result}");
-        Console.WriteLine("------------------------------------");
-
         result = await TestDataWithInvalidFiles().ConfigureAwait(false);
         Console.WriteLine($"{(result ? string.Empty : "--- FAILED- -->")} Testing Data with Invalid Files returned {result}");
         Console.WriteLine("------------------------------------");
@@ -216,70 +212,6 @@ internal class Program
         return true;
     }
 
-    private static async Task<bool> TestDataWithQueryParam()
-    {
-        string storageFolder = Path.Combine(Directory.GetCurrentDirectory(), "TestDataWithQueryParam");
-        // set the storage folder
-        ServerConfig.StorageFolder = storageFolder;
-
-        // send all requests
-        RequestSender requestSender = new();
-
-        (HttpStatusCode statusCode, Dictionary<string, string> headers, string body) = await requestSender.SendGet(respFile: "Foo.json").ConfigureAwait(false);
-        if (!CheckCustomResponse(statusCode, body))
-        {
-            return false;
-        }
-
-        (statusCode, body) = await requestSender.SendDelete(respFile: "Foo.json").ConfigureAwait(false);
-        if (!CheckCustomResponse(statusCode, body))
-        {
-            return false;
-        }
-
-        (statusCode, body) = await requestSender.SendPost(respFile: "Foo.json").ConfigureAwait(false);
-        if (!CheckCustomResponse(statusCode, body))
-        {
-            return false;
-        }
-
-        (statusCode, body) = await requestSender.SendPut(respFile: "Foo.json").ConfigureAwait(false);
-        if (!CheckCustomResponse(statusCode, body))
-        {
-            return false;
-        }
-
-        (statusCode, body) = await requestSender.SendPatch(respFile: "Foo.json").ConfigureAwait(false);
-        if (!CheckCustomResponse(statusCode, body))
-        {
-            return false;
-        }
-
-        (statusCode, _, _) = await requestSender.SendGet(respFile: "Bar.json").ConfigureAwait(false);
-        if (statusCode != HttpStatusCode.NotFound)
-        {
-            return false;
-        }
-
-        return true;
-
-        bool CheckCustomResponse(HttpStatusCode statusCode, string body)
-        {
-            if (statusCode != HttpStatusCode.OK)
-            {
-                return false;
-            }
-
-            CatModel cat = JsonSerializer.Deserialize<CatModel>(body);
-            if (cat == null || cat.Id != 48 || cat.Name != "Foo")
-            {
-                return false;
-            }
-
-            return true;
-        }
-    }
-
     private static async Task<bool> TestDataWithInvalidFiles()
     {
         string storageFolder = Path.Combine(Directory.GetCurrentDirectory(), "TestDataInvalidFiles");
@@ -289,7 +221,7 @@ internal class Program
         // send all requests
         RequestSender requestSender = new();
 
-        (HttpStatusCode statusCode, Dictionary<string, string> headers, string body) = await requestSender.SendGet(respFile: "Invalid.json").ConfigureAwait(false);
+        (HttpStatusCode statusCode, Dictionary<string, string> headers, string body) = await requestSender.SendGet().ConfigureAwait(false);
         if (statusCode != HttpStatusCode.InternalServerError)
         {
             return false;
@@ -297,7 +229,7 @@ internal class Program
         Console.WriteLine($"Error Message {body}");
         Console.WriteLine();
 
-        (statusCode, _, body) = await requestSender.SendGet(respFile: "InvalidStatusCode.json").ConfigureAwait(false);
+        (statusCode, body) = await requestSender.SendDelete().ConfigureAwait(false);
         if (statusCode != HttpStatusCode.InternalServerError)
         {
             return false;
@@ -317,7 +249,8 @@ internal class Program
         // send all requests
         RequestSender requestSender = new();
 
-        (HttpStatusCode statusCode, Dictionary<string, string> headers, string body) = await requestSender.SendGet(respFile: "html.json").ConfigureAwait(false);
+        // Get HTML file
+        (HttpStatusCode statusCode, Dictionary<string, string> headers, string body) = await requestSender.SendGet().ConfigureAwait(false);
         if (statusCode != HttpStatusCode.OK)
         {
             return false;
@@ -325,7 +258,8 @@ internal class Program
         Console.WriteLine($"HTML is {body}");
         Console.WriteLine();
 
-        (statusCode, _, body) = await requestSender.SendGet(respFile: "Plain.json").ConfigureAwait(false);
+        // Get Plain text
+        (statusCode, _, body) = await requestSender.SendGet("/1").ConfigureAwait(false);
         if (statusCode != HttpStatusCode.OK)
         {
             return false;

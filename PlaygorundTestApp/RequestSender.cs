@@ -33,7 +33,6 @@ namespace PlaygorundTestApp
             Patch
         }
 
-        const string RespFileParam = "respFile";
         internal const string RestPath = "pets/cats";
 
         /// <summary>
@@ -42,20 +41,12 @@ namespace PlaygorundTestApp
         /// <param name="path"></param>
         /// <param name="respFile"></param>
         /// <returns></returns>
-        internal async Task<(HttpStatusCode, Dictionary<string, string> headers, string)> SendGet(string path = "", string? respFile = default(string))
+        internal async Task<(HttpStatusCode, Dictionary<string, string> headers, string)> SendGet(string path = "")
         {
             using var httpClient = new HttpClient();
             try
             {
                 UriBuilder uriBuilder = new UriBuilder("http", ServerConfig.HostName, ServerConfig.Port, RestPath + path);
-
-                if (!string.IsNullOrWhiteSpace(respFile))
-                {
-                    var query = System.Web.HttpUtility.ParseQueryString(uriBuilder.Query);
-                    query[RespFileParam] = respFile;
-
-                    uriBuilder.Query = query.ToString();
-                }
 
                 HttpResponseMessage response = await httpClient.GetAsync(uriBuilder.Uri.AbsoluteUri);
 
@@ -89,20 +80,12 @@ namespace PlaygorundTestApp
         /// <param name="path"></param>
         /// <param name="respFile"></param>
         /// <returns></returns>
-        internal async Task<(HttpStatusCode, string)> SendDelete(string path = "", string? respFile = default(string))
+        internal async Task<(HttpStatusCode, string)> SendDelete(string path = "")
         {
             using var httpClient = new HttpClient();
             try
             {
                 UriBuilder uriBuilder = new UriBuilder("http", ServerConfig.HostName, ServerConfig.Port, RestPath, path);
-
-                if (!string.IsNullOrWhiteSpace(respFile))
-                {
-                    var query = System.Web.HttpUtility.ParseQueryString(uriBuilder.Query);
-                    query[RespFileParam] = respFile;
-
-                    uriBuilder.Query = query.ToString();
-                }
 
                 HttpResponseMessage response = await httpClient.DeleteAsync(uriBuilder.Uri.AbsoluteUri);
 
@@ -124,22 +107,22 @@ namespace PlaygorundTestApp
             }
         }
         
-        internal async Task<(HttpStatusCode, string)> SendPost(string? respFile = default(string))
+        internal async Task<(HttpStatusCode, string)> SendPost()
         {
-            return await SendData(SendDataMethods.Post, respFile);
+            return await SendData(SendDataMethods.Post);
         }
 
-        internal async Task<(HttpStatusCode, string)> SendPut(string? respFile = default(string))
+        internal async Task<(HttpStatusCode, string)> SendPut()
         {
-            return await SendData(SendDataMethods.Put, respFile);
+            return await SendData(SendDataMethods.Put);
         }
 
-        internal async Task<(HttpStatusCode, string)> SendPatch(string? respFile = default(string))
+        internal async Task<(HttpStatusCode, string)> SendPatch()
         {
-            return await SendData(SendDataMethods.Patch, respFile);
+            return await SendData(SendDataMethods.Patch);
         }
 
-        private async Task<(HttpStatusCode,string)> SendData(SendDataMethods method, string? respFile = default(string))
+        private async Task<(HttpStatusCode,string)> SendData(SendDataMethods method)
         {
             using var httpClient = new HttpClient();
 
@@ -160,13 +143,6 @@ namespace PlaygorundTestApp
             {
                 UriBuilder uriBuilder = new UriBuilder("http", ServerConfig.HostName, ServerConfig.Port);
                 uriBuilder.Path += RestPath;
-                if(!string.IsNullOrWhiteSpace(respFile))
-                {
-                    var query = System.Web.HttpUtility.ParseQueryString(uriBuilder.Query);
-                    query[RespFileParam] = respFile;
-
-                    uriBuilder.Query = query.ToString();
-                }
 
                 HttpResponseMessage response = null;
 

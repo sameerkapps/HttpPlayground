@@ -15,19 +15,19 @@
     <None Update="appsettings.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Update="TestDataInvalidFiles\pets\cats\Responses\Invalid.json">
+    <None Update="TestDataInvalidFiles\pets\cats\Responses\Get.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Update="TestDataInvalidFiles\pets\cats\Responses\InvalidStatusCode.json">
+    <None Update="TestDataInvalidFiles\pets\cats\Responses\Delete.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Update="TestDataEmpty\empty.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Update="TestDataNonJson\pets\cats\Responses\html.json">
+    <None Update="TestDataNonJson\pets\cats\1\Responses\Get.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Update="TestDataNonJson\pets\cats\Responses\Plain.json">
+    <None Update="TestDataNonJson\pets\cats\Responses\Get.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Update="TestDataNoParam\pets\cats\1\Responses\Get.json">
@@ -43,9 +43,6 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Update="TestDataNoParam\pets\cats\Responses\Put.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="TestDataWithQueryParam\pets\cats\Responses\Foo.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Update="TestDataNoParam\pets\cats\Responses\Post.json">
