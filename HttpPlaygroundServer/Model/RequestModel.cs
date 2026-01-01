@@ -12,7 +12,7 @@ namespace HttpPlaygroundServer.Model
     /// </summary>
     /// <remarks>This class provides a structure for storing the components of an HTTP request. It includes
     /// the URL,  HTTP verb (e.g., GET, POST), headers as key-value pairs, and the body as a JSON object.</remarks>
-    public class RequestStorage
+    public class RequestModel
     {
         /// <summary>
         /// The URL of the HTTP request.

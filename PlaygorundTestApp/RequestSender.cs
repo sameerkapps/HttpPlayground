@@ -107,31 +107,35 @@ namespace PlaygorundTestApp
             }
         }
         
-        internal async Task<(HttpStatusCode, string)> SendPost()
+        internal async Task<(HttpStatusCode, string)> SendPost(CatModel? data = null)
         {
-            return await SendData(SendDataMethods.Post);
+            return await SendData(SendDataMethods.Post, data);
         }
 
-        internal async Task<(HttpStatusCode, string)> SendPut()
+        internal async Task<(HttpStatusCode, string)> SendPut(CatModel? data = null)
         {
-            return await SendData(SendDataMethods.Put);
+            return await SendData(SendDataMethods.Put, data);
         }
 
-        internal async Task<(HttpStatusCode, string)> SendPatch()
+        internal async Task<(HttpStatusCode, string)> SendPatch(object? data = null)
         {
-            return await SendData(SendDataMethods.Patch);
+            return await SendData(SendDataMethods.Patch, data);
         }
 
-        private async Task<(HttpStatusCode,string)> SendData(SendDataMethods method)
+        private async Task<(HttpStatusCode,string)> SendData(SendDataMethods method, object? data = null)
         {
             using var httpClient = new HttpClient();
 
             // Create the object to send
-            var payload = new CatModel
+            if(data == null)
             {
-                Id = 99,
-                Name = "Blue",
-            };
+                data = new CatModel
+                {
+                    Id = 99,
+                    Name = "Blue",
+                };
+            }
+            var payload = data;
 
             // Serialize to JSON
             string json = JsonSerializer.Serialize(payload);

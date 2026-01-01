@@ -2,6 +2,7 @@
 // Copyright (c) 2025 Sameer Khandekar                //
 // License: MIT License.                              //
 ////////////////////////////////////////////////////////
+
 using HttpPlaygroundServer.Model;
 using System;
 using System.Collections.Generic;
@@ -13,7 +14,27 @@ namespace HttpPlaygroundServer
 {
     public class HttpRequestProcessor
     {
-        StorageManager _storeManager = null;
+        /// <summary>
+        /// Logs requests by default.
+        /// </summary>
+        internal bool LogRequests { get; set; } = true;
+
+        // _listReqResp
+        object _lockObj = new object();
+
+        List<Tuple<RequestModel, ResponseModel>> _listReqResp = new List<Tuple<RequestModel, ResponseModel>>();
+
+        internal IReadOnlyList<Tuple<RequestModel, ResponseModel>> RequestResponses => _listReqResp;
+
+        internal void ClearRequestResponses()
+        {
+            lock(_lockObj)
+            {
+                _listReqResp.Clear();
+            }
+        }
+
+        private StorageManager _currentStorage = null;
         /// <summary>
         /// Processes an incoming HTTP request and generates an appropriate response.
         /// </summary>
@@ -26,56 +47,62 @@ namespace HttpPlaygroundServer
         internal protected virtual async Task ProcessRequests(HttpListenerContext context)
         {
             // Create a new store manager for each new request
-            _storeManager = new StorageManager();
+            _currentStorage = new StorageManager();
             // Retrieve the HTTP request from the context
             HttpListenerRequest request = context.Request;
 
+            RequestModel requestModel = default;
+            ResponseModel responseModel;
+
             try
             {
+                // Parse the request
+                requestModel = HttpRequestParser.Parse(request);
+
                 // Store the HTTP request details asynchronously
-                await StoreRequest(request).ConfigureAwait(false);
+                if (LogRequests)
+                {
+                    await _currentStorage.StoreRequest(requestModel).ConfigureAwait(false);
+                }
+                else
+                {
+                    _currentStorage.CreateFoldersFromUrl(requestModel.URL, false);
+                }
+
+                // Send an HTTP response based on the request's HTTP method and URL
+                responseModel = await SendResponse(requestModel, context.Response).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
+                if(requestModel == null)
+                {
+                    requestModel = new RequestModel()
+                    {
+                        // Store the URL of the request.
+                        URL = request.Url.AbsoluteUri,
+
+                        // Store the HTTP method (e.g., GET, POST) of the request.
+                        Verb = request.HttpMethod,
+                        Body = ex.Message
+                    };
+                }
+
                 // If an exception occurs, set the response status code to 500 (Internal Server Error)
                 context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
 
                 // Write the exception message to the response body
                 await WriteResponseBody(context.Response, ex.Message).ConfigureAwait(false);
 
-                // Exit the method to prevent further processing
-                return;
+                responseModel = new ResponseModel()
+                {
+                    StatusCode = HttpStatusCode.InternalServerError,
+                    Headers = new Dictionary<string, string>(),
+                    Body = ex.Message
+                };
             }
 
-            // Send an HTTP response based on the request's HTTP method and URL
-            await SendResponse(request, context.Response).ConfigureAwait(false);
+            AddReqResp(requestModel, responseModel);
         }
-
-        /// <summary>
-        /// Asynchronously stores the details of an HTTP request.
-        /// </summary>
-        /// <remarks>This method parses the provided HTTP request and stores its details using the
-        /// underlying storage manager. Ensure that the <paramref name="request"/> parameter is valid and properly
-        /// initialized before calling this method.</remarks>
-        /// <param name="request">The <see cref="HttpListenerRequest"/> containing the HTTP request data to be stored. This parameter cannot
-        /// be <see langword="null"/>.</param>
-        /// <returns>A task that represents the asynchronous operation.</returns>
-        protected virtual async Task StoreRequest(HttpListenerRequest request)
-        {
-            // Parse the result
-            RequestStorage rs = HttpRequestParser.Parse(request);
-
-            // Write the request
-            await _storeManager.StoreRequest(rs).ConfigureAwait(false);
-        }
-
-        // TODOs
-        // - Call back
-        // D- Change Signature to SendResponse(HttpListenerRequest, HttpListenerResponse)
-        // D- make this method virtual
-        // D- break into parts to create response from RS
-        // D - Add a method to store manager retriving response given filename
-        // 
 
         /// <summary>
         /// Sends an HTTP response based on the specified HTTP method and URL.
@@ -88,13 +115,13 @@ namespace HttpPlaygroundServer
         /// <param name="url">The URL of the request, used to retrieve the corresponding response data.</param>
         /// <param name="response">The <see cref="HttpListenerResponse"/> object to which the response will be written.</param>
         /// <returns></returns>
-        protected virtual async Task SendResponse(HttpListenerRequest request, HttpListenerResponse response)
+        protected virtual async Task<ResponseModel> SendResponse(RequestModel requestData, HttpListenerResponse response)
         {
             string responseBody = string.Empty;
-
+            ResponseModel responseData;
             try
             {
-                ResponseStorage responseData = await SimulateServerHandling(request).ConfigureAwait(false);
+                responseData = await SimulateServerHandling(requestData).ConfigureAwait(false);
 
                 SetStatusCode(response, responseData.StatusCode);
                 ApplyHeaders(response, responseData.Headers);
@@ -104,15 +131,36 @@ namespace HttpPlaygroundServer
             catch (Exception ex)
             {
                 HandleResponseError(response, ex, out responseBody);
+
+                responseData = new ResponseModel()
+                                    {
+                                        Headers = new Dictionary<string, string>(),
+                                        StatusCode = HttpStatusCode.InternalServerError,
+                                        Body = ex.Message
+                                    };
             }
 
             await WriteResponseBody(response, responseBody).ConfigureAwait(false);
+
+            return responseData;
         }
 
-        protected virtual async Task<ResponseStorage> SimulateServerHandling(HttpListenerRequest request)
+        protected virtual async Task<ResponseModel> SimulateServerHandling(RequestModel rs)
         {
             // Retrieve the response data from the storage manager based on the HTTP method
-            return await _storeManager.RetrieveResponseByVerb(request.HttpMethod).ConfigureAwait(false);
+            return await RetrieveByVerb(rs).ConfigureAwait(false);
+        }
+
+        protected virtual Task<ResponseModel> RetrieveByVerb(RequestModel rs)
+        {
+            // Retrieve the response data from the storage manager based on the HTTP method
+            return _currentStorage.RetrieveResponseByVerb(rs.Verb);
+        }
+
+        protected virtual Task<ResponseModel> RetrieveByFile(string filename, string url= null)
+        {
+            // Retrieve the response data from the storage manager based on the file name
+            return _currentStorage.RetrieveResponseByFileName(filename, url);
         }
 
         private void SetStatusCode(HttpListenerResponse response, HttpStatusCode statusCode)
@@ -193,6 +241,20 @@ namespace HttpPlaygroundServer
 
             // Close the HttpListenerResponse to release resources
             response.Close();
+        }
+
+        /// <summary>
+        /// Add one at a time. Lock is not efficient; queuing should be used for performance.
+        /// But this is not related to measuring performance.
+        /// </summary>
+        /// <param name="request"></param>
+        /// <param name="response"></param>
+        private void AddReqResp(RequestModel request, ResponseModel response)
+        {
+            lock(_lockObj)
+            {
+                _listReqResp.Add(new Tuple<RequestModel, ResponseModel>(request, response));
+            }
         }
     }
 }

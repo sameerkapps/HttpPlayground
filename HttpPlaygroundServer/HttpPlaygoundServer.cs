@@ -2,7 +2,9 @@
 // Copyright (c) 2025 Sameer Khandekar                //
 // License: MIT License.                              //
 ////////////////////////////////////////////////////////
+using HttpPlaygroundServer.Model;
 using System;
+using System.Collections.Generic;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
@@ -15,6 +17,31 @@ namespace HttpPlaygroundServer
     /// </summary>
     public class HttpPlaygoundServer
     {
+        /// <summary>
+        /// Logs requests by default.
+        /// </summary>
+        public bool IsRequestLoggingEnabled 
+        { 
+            get
+            {
+                return _rp.LogRequests;
+            } 
+            set
+            {
+                _rp.LogRequests = value;
+            }
+        }
+
+        /// <summary>
+        /// This collects Request Responses in order in which the request were sent
+        /// Clear it be fore starting a funcional test and use it after completing the test
+        /// This is intended for running single functional test at a time. 
+        /// If multiple are run in parallel, this may mix results of multiple tests
+        /// </summary>
+        public IReadOnlyList<Tuple<RequestModel, ResponseModel>> RequestResponses => _rp.RequestResponses;
+
+        public void ClearRequestResponses() => _rp.ClearRequestResponses();
+
         HttpRequestProcessor _rp = null;
         public HttpPlaygoundServer(HttpRequestProcessor rp = null)
         {
@@ -33,7 +60,7 @@ namespace HttpPlaygroundServer
         /// <param name="mre">A <see cref="ManualResetEventSlim"/> used to signal the caller when the HTTP listener has started
         /// successfully.</param>
         /// <param name="token">A <see cref="CancellationToken"/> used to stop the HTTP listener gracefully when cancellation is requested.</param>
-        public void StartHttpListner(ManualResetEventSlim mre, CancellationToken token)
+        public async Task<HttpListener> StartHttpListner(ManualResetEventSlim mre, CancellationToken token)
         {
             HttpListener listener = new HttpListener();
 
@@ -58,6 +85,8 @@ namespace HttpPlaygroundServer
                     }).ConfigureAwait(false);
                 });
             }
+
+            return listener;
         }
     }
 }
