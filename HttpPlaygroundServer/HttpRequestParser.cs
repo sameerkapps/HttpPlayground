@@ -15,7 +15,7 @@ namespace HttpPlaygroundServer
     /// Provides functionality to parse HTTP requests into a structured format.
     /// </summary>
     /// <remarks>This class is designed to process instances of <see cref="HttpListenerRequest"/> and convert
-    /// them into <see cref="RequestStorage"/> objects, which encapsulate the request's URL, HTTP method, headers, and
+    /// them into <see cref="RequestModel"/> objects, which encapsulate the request's URL, HTTP method, headers, and
     /// body. The body is parsed as JSON if possible; otherwise, it is stored as a raw string.</remarks>
     public class HttpRequestParser
     {
@@ -24,10 +24,10 @@ namespace HttpPlaygroundServer
         /// </summary>
         /// <param name="request">The HttpListenerRequest to parse.</param>
         /// <returns>A RequestStorage object containing the parsed data.</returns>
-        public static RequestStorage Parse(HttpListenerRequest request)
+        public static RequestModel Parse(HttpListenerRequest request)
         {
             // Initialize a new RequestStorage object to store the parsed request data.
-            RequestStorage rs = new RequestStorage();
+            RequestModel rs = new RequestModel();
 
             // Store the URL of the request.
             rs.URL = request.Url.AbsoluteUri;

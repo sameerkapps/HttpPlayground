@@ -17,5 +17,5 @@ public class CatModel
     /// <summary>
     /// Name of the cat
     /// </summary>
-    public string Name { get; set; }
+    public string? Name { get; set; }
 }

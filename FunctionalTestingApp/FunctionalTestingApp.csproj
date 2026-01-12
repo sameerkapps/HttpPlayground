@@ -1,0 +1,42 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="..\PlaygorundTestApp\FunctionalTesting\*" Link="FunctionalTesting" />
+    <Compile Include="..\PlaygorundTestApp\FunctionalTesting\Clients\*" Link="FunctionalTesting\Clients" />
+    <Compile Include="..\PlaygorundTestApp\FunctionalTesting\Models\*" Link="FunctionalTesting\Models" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\PlaygorundTestApp\CatModel.cs" Link="CatModel.cs" />
+    <Compile Include="..\PlaygorundTestApp\RequestSender.cs" Link="RequestSender.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="..\PlaygorundTestApp\TestData\Functional\pets\cats\Responses\400.json" Link="TestData\Functional\pets\cats\Responses\400.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\PlaygorundTestApp\TestData\Functional\pets\cats\Responses\404.json" Link="TestData\Functional\pets\cats\Responses\404.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\PlaygorundTestApp\TestData\Functional\pets\cats\Responses\CatGet.json" Link="TestData\Functional\pets\cats\Responses\CatGet.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\PlaygorundTestApp\TestData\Functional\pets\cats\Responses\CatPost.json" Link="TestData\Functional\pets\cats\Responses\CatPost.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\PlaygorundTestApp\TestData\Functional\pets\cats\Responses\Patch.json" Link="TestData\Functional\pets\cats\Responses\Patch.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="sameerk.HttpPlaygroundServer" Version="2.0.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="TestData\Functional\pets\cats\Responses\" />
+  </ItemGroup>
+
+</Project>

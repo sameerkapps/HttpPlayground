@@ -5,16 +5,16 @@
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <Title>HTTP Playground Server</Title>
     <PackageId>sameerk.HttpPlaygroundServer</PackageId>
-    <Version>1.0.0</Version>
+    <Version>2.0.0</Version>
     <Authors>Sameer Khandekar</Authors>
     <Company />
     <Product>HTTP Playground Server</Product>
-    <Description>This is a playground server to consume and log Http requests and return customizable mock responses.</Description>
+    <Description>Enables functional testing of HTTP client workflows using a local server that records request–response pairs and provides the ability to verify call sequences.</Description>
     <Copyright>Sameer Khandekar</Copyright>
     <PackageIcon>HttpPlaygroundServer.png</PackageIcon>
     <PackageProjectUrl>https://github.com/sameerkapps/HttpPlayground</PackageProjectUrl>
     <RepositoryUrl>https://github.com/sameerkapps/HttpPlayground</RepositoryUrl>
-    <PackageTags>#http #server #localserver #mockserver #httplogger #requestlogger #testing #testtools #mockresponses #simulation #httprequests #developer-tools #integration-testing #qa #debugging </PackageTags>
+    <PackageTags>#http #httpclient #testing #functional-testing #client-testing #workflow-testing #server-simulation #request-response #call-sequence #integration-testing</PackageTags>
     <PackageReleaseNotes>Initial release</PackageReleaseNotes>
     <PackageReadmeFile>NuGetReadme.md</PackageReadmeFile>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
@@ -40,9 +40,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.0" />
-    <PackageReference Include="System.Text.Json" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.1" />
+    <PackageReference Include="System.ServiceModel.Primitives" Version="10.0.652802" />
+    <PackageReference Include="System.Text.Json" Version="10.0.1" />
   </ItemGroup>
 
   <ItemGroup>

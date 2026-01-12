@@ -11,7 +11,7 @@ namespace HttpPlaygroundServer.Model
     /// <summary>
     /// Represents a storage model for HTTP responses, including status code, headers, and body content.
     /// </summary>
-    public class ResponseStorage
+    public class ResponseModel
     {
         /// <summary>
         /// Gets or sets the HTTP status code of the response.

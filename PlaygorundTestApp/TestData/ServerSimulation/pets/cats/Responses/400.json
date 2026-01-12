@@ -1,0 +1,9 @@
+﻿{
+  "StatusCode": 400,
+  "Headers": {
+    "Content-Type": "application/json; charset=utf-8"
+  },
+  "Body": {
+    "Error": "Cat's name is Offensive"
+  }
+}

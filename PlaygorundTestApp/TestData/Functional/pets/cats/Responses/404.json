@@ -1,0 +1,9 @@
+﻿{
+  "StatusCode": 404,
+  "Headers": {
+    "Content-Type": "application/json; charset=utf-8"
+  },
+  "Body": {
+    "Error": "Cat not found"
+  }
+}

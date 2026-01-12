@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PlaygroundSampleApp", "Play
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PlaygroundServerApp", "PlaygroundServerApp\PlaygroundServerApp.csproj", "{AB932E62-AB13-0880-F96B-97BAF62D96A1}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FunctionalTestingApp", "FunctionalTestingApp\FunctionalTestingApp.csproj", "{5AF04C60-AAFD-4367-9BD7-E303E06FAB44}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{AB932E62-AB13-0880-F96B-97BAF62D96A1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AB932E62-AB13-0880-F96B-97BAF62D96A1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{AB932E62-AB13-0880-F96B-97BAF62D96A1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5AF04C60-AAFD-4367-9BD7-E303E06FAB44}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5AF04C60-AAFD-4367-9BD7-E303E06FAB44}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5AF04C60-AAFD-4367-9BD7-E303E06FAB44}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5AF04C60-AAFD-4367-9BD7-E303E06FAB44}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -33,7 +33,6 @@ namespace PlaygorundTestApp
             Patch
         }
 
-        const string RespFileParam = "respFile";
         internal const string RestPath = "pets/cats";
 
         /// <summary>
@@ -42,27 +41,19 @@ namespace PlaygorundTestApp
         /// <param name="path"></param>
         /// <param name="respFile"></param>
         /// <returns></returns>
-        internal async Task<(HttpStatusCode, Dictionary<string, string> headers, string)> SendGet(string path = "", string? respFile = default(string))
+        internal async Task<(HttpStatusCode, Dictionary<string, string>? headers, string)> SendGet(string path = "")
         {
             using var httpClient = new HttpClient();
             try
             {
                 UriBuilder uriBuilder = new UriBuilder("http", ServerConfig.HostName, ServerConfig.Port, RestPath + path);
 
-                if (!string.IsNullOrWhiteSpace(respFile))
-                {
-                    var query = System.Web.HttpUtility.ParseQueryString(uriBuilder.Query);
-                    query[RespFileParam] = respFile;
-
-                    uriBuilder.Query = query.ToString();
-                }
-
                 HttpResponseMessage response = await httpClient.GetAsync(uriBuilder.Uri.AbsoluteUri);
 
                 Dictionary<string, string> headers = new();
                 foreach(var header in response.Headers)
                 {
-                    headers[header.Key] = header.Value.FirstOrDefault();
+                    headers[header.Key] = header.Value.First();
                 }
 
                 string responseBody = await response.Content.ReadAsStringAsync();
@@ -89,20 +80,12 @@ namespace PlaygorundTestApp
         /// <param name="path"></param>
         /// <param name="respFile"></param>
         /// <returns></returns>
-        internal async Task<(HttpStatusCode, string)> SendDelete(string path = "", string? respFile = default(string))
+        internal async Task<(HttpStatusCode, string)> SendDelete(string path = "")
         {
             using var httpClient = new HttpClient();
             try
             {
                 UriBuilder uriBuilder = new UriBuilder("http", ServerConfig.HostName, ServerConfig.Port, RestPath, path);
-
-                if (!string.IsNullOrWhiteSpace(respFile))
-                {
-                    var query = System.Web.HttpUtility.ParseQueryString(uriBuilder.Query);
-                    query[RespFileParam] = respFile;
-
-                    uriBuilder.Query = query.ToString();
-                }
 
                 HttpResponseMessage response = await httpClient.DeleteAsync(uriBuilder.Uri.AbsoluteUri);
 
@@ -124,31 +107,43 @@ namespace PlaygorundTestApp
             }
         }
         
-        internal async Task<(HttpStatusCode, string)> SendPost(string? respFile = default(string))
+        internal async Task<(HttpStatusCode, string)> SendPost(CatModel? data = null)
         {
-            return await SendData(SendDataMethods.Post, respFile);
+            return await SendData(SendDataMethods.Post, data);
         }
 
-        internal async Task<(HttpStatusCode, string)> SendPut(string? respFile = default(string))
+        internal async Task<(HttpStatusCode, string)> SendPut(CatModel? data = null)
         {
-            return await SendData(SendDataMethods.Put, respFile);
+            return await SendData(SendDataMethods.Put, data);
         }
 
-        internal async Task<(HttpStatusCode, string)> SendPatch(string? respFile = default(string))
+        internal async Task<(HttpStatusCode, string)> SendPatch(object? data = null)
         {
-            return await SendData(SendDataMethods.Patch, respFile);
+            return await SendData(SendDataMethods.Patch, data);
         }
 
-        private async Task<(HttpStatusCode,string)> SendData(SendDataMethods method, string? respFile = default(string))
+        /// <summary>
+        /// This will send data to the backend by converting it to JSON string and embedding it in th ebody
+        /// If the data is null, it will create a cat model
+        /// </summary>
+        /// <param name="method"></param>
+        /// <param name="data"></param>
+        /// <returns></returns>
+        /// <exception cref="InvalidEnumArgumentException"></exception>
+        private async Task<(HttpStatusCode,string)> SendData(SendDataMethods method, object? data = null)
         {
             using var httpClient = new HttpClient();
 
-            // Create the object to send
-            var payload = new CatModel
+            // Create the payload to send
+            if(data == null)
             {
-                Id = 99,
-                Name = "Blue",
-            };
+                data = new CatModel
+                {
+                    Id = 99,
+                    Name = "Blue",
+                };
+            }
+            var payload = data;
 
             // Serialize to JSON
             string json = JsonSerializer.Serialize(payload);
@@ -160,15 +155,8 @@ namespace PlaygorundTestApp
             {
                 UriBuilder uriBuilder = new UriBuilder("http", ServerConfig.HostName, ServerConfig.Port);
                 uriBuilder.Path += RestPath;
-                if(!string.IsNullOrWhiteSpace(respFile))
-                {
-                    var query = System.Web.HttpUtility.ParseQueryString(uriBuilder.Query);
-                    query[RespFileParam] = respFile;
 
-                    uriBuilder.Query = query.ToString();
-                }
-
-                HttpResponseMessage response = null;
+                HttpResponseMessage response;
 
                 if (method == SendDataMethods.Post)
                 {
