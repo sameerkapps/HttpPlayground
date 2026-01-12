@@ -1,42 +1,46 @@
-﻿using HttpPlaygroundServer;
+﻿////////////////////////////////////////////////////////
+// Copyright (c) 2025 Sameer Khandekar                //
+// License: MIT License.                              //
+////////////////////////////////////////////////////////
+using HttpPlaygroundServer;
 using HttpPlaygroundServer.Model;
-using Microsoft.Extensions.FileSystemGlobbing.Internal;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Net;
-using System.Text;
 using System.Text.Json;
-using System.Threading.Tasks;
 
 namespace PlaygorundTestApp
 {
+    /// <summary>
+    /// This is for testing with server logic simulator. 
+    /// The logic simulates condition that if cat's name is offensive, it will return bad request.
+    /// </summary>
     internal class TestWithServerSimulation
     {
         internal static async Task Run()
         {
-            // start the server
             CancellationTokenSource cts = new CancellationTokenSource();
+            // Server will trigger this after starting
             ManualResetEventSlim serverStarted = new();
 
-            HttpPlaygoundServer httpTestListener = new(new ServerLogicSimulator());
-            Task<HttpListener> httpListener = Task.Run<HttpListener>(async () => { return await httpTestListener.StartHttpListner(serverStarted, cts.Token).ConfigureAwait(false); });
+            // create playground server passing Server Logic simulator as parameter
+            HttpPlaygoundServer playgroundServer = new(new ServerLogicSimulator());
+
+            // run it in a different task/thread
+            _ = Task.Run(async () => { await playgroundServer.StartServer(serverStarted, cts.Token).ConfigureAwait(false); });
 
             // wait for the server to start
             serverStarted.Wait();
 
-            // test various permutations
+            // test
             bool result = false;
             result = await TestWithServerSimulationFolder().ConfigureAwait(false);
-            Console.WriteLine($"{(result ? string.Empty : "--- FAILED- -->")} Testing with empty folder returned {result}");
+            Console.WriteLine($"{(result ? string.Empty : "--- FAILED- -->")} Testing with TestWithServerSimulationFolder returned {result}");
             Console.WriteLine("------------------------------------");
 
+            // cancel the server listening operation
             cts.Cancel();
 
-            await httpListener;
-
-            httpListener.Result.Stop();
-            httpListener.Result.Close();
+            // clean up
+            playgroundServer.StopServer();
         }
 
         private static async Task<bool> TestWithServerSimulationFolder()
@@ -52,31 +56,33 @@ namespace PlaygorundTestApp
                 Directory.Delete(requestsFolder, true);
             }
 
-            // send all requests
+            // Create helper class
             RequestSender requestSender = new();
 
-            // Send Request with non offensive name
+            // Send create Request with non offensive name
             (HttpStatusCode statusCode, _) = await requestSender.SendPost().ConfigureAwait(false);
             if (statusCode != HttpStatusCode.Created)
             {
                 return false;
             }
 
+            // create cat model with offensive name
             CatModel cat = new CatModel()
             {
                 Id = 420,
                 Name = "Offensive"
             };
 
-            // send post with offensive name
+            // send create request with offensive name
             (statusCode, _) = await requestSender.SendPost(cat).ConfigureAwait(false);
+
+            // verify that return code is bad request
             if (statusCode != HttpStatusCode.BadRequest)
             {
                 return false;
             }
 
-            // ensure that files are created
-
+            // ensure that correct files are created
             return (GetRequestFilesCount(requestsFolder) == 2);
         }
 
@@ -89,6 +95,9 @@ namespace PlaygorundTestApp
             return Directory.GetFiles(requestsFolder, postFile).Count();
         }
 
+        /// <summary>
+        /// This class will simulate logic to prevent creation of cat with offensive name
+        /// </summary>
         class ServerLogicSimulator : HttpRequestProcessor
         {
             /// <summary>
@@ -98,9 +107,9 @@ namespace PlaygorundTestApp
             /// <returns></returns>
             protected override Task<ResponseModel> SimulateServerHandling(RequestModel rs)
             {
-                CatModel cat = JsonSerializer.Deserialize<CatModel>(rs.Body);
+                CatModel? cat = JsonSerializer.Deserialize<CatModel>(rs.Body);
 
-                if (string.Equals(cat.Name, "Offensive"))
+                if (string.Equals(cat?.Name, "Offensive"))
                 {
                     return base.RetrieveByFile("400.json");
                 }

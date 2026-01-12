@@ -1,14 +1,13 @@
-﻿using HttpPlaygroundServer;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Net;
-using System.Text;
-using System.Threading.Tasks;
+﻿////////////////////////////////////////////////////////
+// Copyright (c) 2025 Sameer Khandekar                //
+// License: MIT License.                              //
+////////////////////////////////////////////////////////
 
 namespace PlaygorundTestApp.FunctionalTesting.Clients
 {
+    /// <summary>
+    /// This is a class simulating client for third party APIs.
+    /// </summary>
     internal class PhotoClient
     {
         internal const string RelativeURL = "/PhotoURLs";
@@ -23,6 +22,7 @@ namespace PlaygorundTestApp.FunctionalTesting.Clients
         {
         }
 
+        /// It will retrieve photo URI for the given catId
         internal async Task<string?> GetCatPhoto(int catid)
         {
             using var httpClient = new HttpClient();

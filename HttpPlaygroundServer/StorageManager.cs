@@ -27,7 +27,7 @@ namespace HttpPlaygroundServer
         private string _strRequestsFolder;
         private string _strResponsesFolder;
 
-        internal async Task StoreRequest(RequestModel rs)
+        internal async Task SaveRequest(RequestModel rs)
         {
             // from URL, build storage folder
             CreateFoldersFromUrl(rs.URL);

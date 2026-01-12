@@ -1,14 +1,17 @@
-﻿using PlaygorundTestApp.FunctionalTesting.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿////////////////////////////////////////////////////////
+// Copyright (c) 2025 Sameer Khandekar                //
+// License: MIT License.                              //
+////////////////////////////////////////////////////////
+using PlaygorundTestApp.FunctionalTesting.Models;
 using System.Net;
-using System.Text;
 using System.Text.Json;
-using System.Threading.Tasks;
 
 namespace PlaygorundTestApp.FunctionalTesting.Clients
 {
+    /// <summary>
+    /// This class will act as a client that will make calls to Cat's REST API.
+    /// It will perform GET, POST, and PATCH operations.
+    /// </summary>
     internal class CatClient
     {
         public static CatClient Instance { get; } = Instance ?? new CatClient();
@@ -17,6 +20,8 @@ namespace PlaygorundTestApp.FunctionalTesting.Clients
         {
         }
 
+        // this get call returns info of the cat.
+        // if cat is not found it returns null
         internal async Task<CatModel?> GetCatInfo(int catid)
         {
             RequestSender rs = new();
@@ -35,6 +40,7 @@ namespace PlaygorundTestApp.FunctionalTesting.Clients
             return null;
         }
 
+        // crates cat model and sends it to the backend
         internal async Task<HttpStatusCode> GreateCatInfo(int catid, string catName)
         {
             RequestSender rs = new();
@@ -54,6 +60,8 @@ namespace PlaygorundTestApp.FunctionalTesting.Clients
             return status;
         }
 
+
+        // This will update photo uri of the cat
         internal async Task<HttpStatusCode> UpdateCatPhoto(int catid, string photoUri)
         {
             RequestSender rs = new();

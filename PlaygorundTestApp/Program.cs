@@ -20,8 +20,8 @@ internal class Program
         // Loads values from appsettings.json
         LoadConfig();
 
-        // await TestWithNoServerSimulation.Run().ConfigureAwait(false);
-        // await TestWithServerSimulation.Run().ConfigureAwait(false);
+        await TestWithNoServerSimulation.Run().ConfigureAwait(false);
+        await TestWithServerSimulation.Run().ConfigureAwait(false);
         await TestFunctionalWithServerSimulation.Run().ConfigureAwait(false);
     }
 

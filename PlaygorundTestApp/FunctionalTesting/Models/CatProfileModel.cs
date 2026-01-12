@@ -6,12 +6,10 @@
 namespace PlaygorundTestApp.FunctionalTesting.Models
 {
     /// <summary>
-    /// Model for catID and PhotoURI
+    /// Cat profile model. Adds extra attribute of PhotoURI.
     /// </summary>
-    internal class CatPhotoUpdateModel
+    internal class CatProfileModel : CatModel
     {
-        public int CatId { get; set; }
-
-        public string? PhotoURI { get; set; }
+        public string? PhotoUrl { get; set; }
     }
 }

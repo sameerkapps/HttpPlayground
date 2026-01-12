@@ -41,7 +41,7 @@ namespace PlaygorundTestApp
         /// <param name="path"></param>
         /// <param name="respFile"></param>
         /// <returns></returns>
-        internal async Task<(HttpStatusCode, Dictionary<string, string> headers, string)> SendGet(string path = "")
+        internal async Task<(HttpStatusCode, Dictionary<string, string>? headers, string)> SendGet(string path = "")
         {
             using var httpClient = new HttpClient();
             try
@@ -53,7 +53,7 @@ namespace PlaygorundTestApp
                 Dictionary<string, string> headers = new();
                 foreach(var header in response.Headers)
                 {
-                    headers[header.Key] = header.Value.FirstOrDefault();
+                    headers[header.Key] = header.Value.First();
                 }
 
                 string responseBody = await response.Content.ReadAsStringAsync();
@@ -122,11 +122,19 @@ namespace PlaygorundTestApp
             return await SendData(SendDataMethods.Patch, data);
         }
 
+        /// <summary>
+        /// This will send data to the backend by converting it to JSON string and embedding it in th ebody
+        /// If the data is null, it will create a cat model
+        /// </summary>
+        /// <param name="method"></param>
+        /// <param name="data"></param>
+        /// <returns></returns>
+        /// <exception cref="InvalidEnumArgumentException"></exception>
         private async Task<(HttpStatusCode,string)> SendData(SendDataMethods method, object? data = null)
         {
             using var httpClient = new HttpClient();
 
-            // Create the object to send
+            // Create the payload to send
             if(data == null)
             {
                 data = new CatModel
@@ -148,7 +156,7 @@ namespace PlaygorundTestApp
                 UriBuilder uriBuilder = new UriBuilder("http", ServerConfig.HostName, ServerConfig.Port);
                 uriBuilder.Path += RestPath;
 
-                HttpResponseMessage response = null;
+                HttpResponseMessage response;
 
                 if (method == SendDataMethods.Post)
                 {

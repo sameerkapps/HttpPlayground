@@ -1,24 +1,31 @@
-﻿using HttpPlaygroundServer;
-using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿////////////////////////////////////////////////////////
+// Copyright (c) 2025 Sameer Khandekar                //
+// License: MIT License.                              //
+////////////////////////////////////////////////////////
+using HttpPlaygroundServer;
 using System.Net;
-using System.Text;
 using System.Text.Json;
-using System.Threading.Tasks;
 
 namespace PlaygorundTestApp
 {
+    /// <summary>
+    /// This is for testing with no server simulation.
+    /// There is a seperate file to cover server simulation
+    /// Functional testing is covered in a different file
+    /// </summary>
     internal class TestWithNoServerSimulation
     {
         internal static async Task Run()
         {
-            // start the server
             CancellationTokenSource cts = new CancellationTokenSource();
+            // Server will trigger this after starting
             ManualResetEventSlim serverStarted = new();
 
+            // create playground server
             HttpPlaygoundServer playgroundServer = new();
-            Task<HttpListener> httpListener = Task.Run<HttpListener>(async () => { return await playgroundServer.StartHttpListner(serverStarted, cts.Token).ConfigureAwait(false); });
+
+            // run it in a different task/thread
+            _ = Task.Run(async () => { await playgroundServer.StartServer(serverStarted, cts.Token).ConfigureAwait(false); });
 
             // wait for the server to start
             serverStarted.Wait();
@@ -45,18 +52,22 @@ namespace PlaygorundTestApp
             Console.WriteLine($"{(result ? string.Empty : "--- FAILED- -->")} Testing EnableLogging returned {result}");
             Console.WriteLine("------------------------------------");
 
+            // cancel the server listening operation
             cts.Cancel();
 
-            await httpListener;
-
-            httpListener.Result.Stop();
-            httpListener.Result.Close();
+            // clean up
+            playgroundServer.StopServer();
         }
 
+        /// <summary>
+        /// This encompasses multitude of test cases when folder is empty.
+        /// You will find the generated request logs in the Requests folder
+        /// </summary>
+        /// <returns></returns>
         private static async Task<bool> TestWithEmptyFolder()
         {
-            string storageFolder = Path.Combine(Directory.GetCurrentDirectory(), "TestData/Empty");
             // set the storage folder
+            string storageFolder = Path.Combine(Directory.GetCurrentDirectory(), "TestData/Empty");
             ServerConfig.StorageFolder = storageFolder;
 
             // empty Requests subfolder
@@ -66,55 +77,62 @@ namespace PlaygorundTestApp
                 Directory.Delete(requestsFolder, true);
             }
 
+            // empty Requests subfolder for pets/cats/1
             string requests1Folder = Path.Combine(storageFolder, RequestSender.RestPath, "1", "Requests");
             if (Directory.Exists(requests1Folder))
             {
                 Directory.Delete(requests1Folder, true);
             }
 
-            // send all requests
+            // Create helper class RequestSender
             RequestSender requestSender = new();
 
-            (HttpStatusCode statusCode, Dictionary<string, string> _, string body) = await requestSender.SendGet().ConfigureAwait(false);
+            // Send get
+            (HttpStatusCode statusCode, Dictionary<string, string>? _, string body) = await requestSender.SendGet().ConfigureAwait(false);
             if (statusCode != HttpStatusCode.OK)
             {
                 return false;
             }
 
+            // Send get with uri parameter
             (statusCode, _, body) = await requestSender.SendGet("/1").ConfigureAwait(false);
             if (statusCode != HttpStatusCode.OK)
             {
                 return false;
             }
 
+            // Send delete request
             (statusCode, body) = await requestSender.SendDelete().ConfigureAwait(false);
             if (statusCode != HttpStatusCode.NoContent)
             {
                 return false;
             }
 
+            // Send Post request
             (statusCode, body) = await requestSender.SendPost().ConfigureAwait(false);
             if (statusCode != HttpStatusCode.Created)
             {
                 return false;
             }
 
+            // send put request
             (statusCode, body) = await requestSender.SendPut().ConfigureAwait(false);
             if (statusCode != HttpStatusCode.OK)
             {
                 return false;
             }
 
+            // send patch request
             (statusCode, body) = await requestSender.SendPatch().ConfigureAwait(false);
             if (statusCode != HttpStatusCode.OK)
             {
                 return false;
             }
 
-            // ensure that files are created
             string file1Suffix = $"GET-{DateTime.Now.ToString("yyyyMMdd-")}*.json";
 
-            return AreRequestFilesCreated(requestsFolder) && Directory.GetFiles(requests1Folder, file1Suffix).Any();
+            return AreRequestFilesCreated(requestsFolder) &&    // Ensure that there is a file for each request
+                   Directory.GetFiles(requests1Folder, file1Suffix).Any(); // ensure that files are created for URI parameter
         }
 
         private static async Task<bool> TestDataWithNoParam()
@@ -126,13 +144,13 @@ namespace PlaygorundTestApp
             // send all requests
             RequestSender requestSender = new();
 
-            (HttpStatusCode statusCode, Dictionary<string, string> headers, string body) = await requestSender.SendGet().ConfigureAwait(false);
+            (HttpStatusCode statusCode, Dictionary<string, string>? headers, string body) = await requestSender.SendGet().ConfigureAwait(false);
             if (statusCode != HttpStatusCode.OK)
             {
                 return false;
             }
             // walk through the headers and make sure that there is custom header
-            if (!headers.TryGetValue("CustomHdr", out string? hdrValue))
+            if (headers == null || !headers.TryGetValue("CustomHdr", out string? hdrValue))
             {
                 return false;
             }
@@ -142,7 +160,7 @@ namespace PlaygorundTestApp
                 return false;
             }
 
-            List<CatModel> cats = JsonSerializer.Deserialize<List<CatModel>>(body);
+            List<CatModel>? cats = JsonSerializer.Deserialize<List<CatModel>>(body);
             if (cats == null || cats.Count != 2)
             {
                 return false;
@@ -158,7 +176,7 @@ namespace PlaygorundTestApp
             {
                 return false;
             }
-            CatModel cat1 = JsonSerializer.Deserialize<CatModel>(body);
+            CatModel? cat1 = JsonSerializer.Deserialize<CatModel>(body);
             if (cat1 == null || cat1.Id != 1 || cat1.Name != "First")
             {
                 return false;
@@ -169,7 +187,7 @@ namespace PlaygorundTestApp
             {
                 return false;
             }
-            CatModel cat = JsonSerializer.Deserialize<CatModel>(body);
+            CatModel? cat = JsonSerializer.Deserialize<CatModel>(body);
             if (cat == null || cat.Id != 42 || cat.Name != "Never")
             {
                 return false;
@@ -221,7 +239,7 @@ namespace PlaygorundTestApp
             // send all requests
             RequestSender requestSender = new();
 
-            (HttpStatusCode statusCode, Dictionary<string, string> headers, string body) = await requestSender.SendGet().ConfigureAwait(false);
+            (HttpStatusCode statusCode, Dictionary<string, string>? headers, string body) = await requestSender.SendGet().ConfigureAwait(false);
             if (statusCode != HttpStatusCode.InternalServerError)
             {
                 return false;
@@ -250,7 +268,7 @@ namespace PlaygorundTestApp
             RequestSender requestSender = new();
 
             // Get HTML file
-            (HttpStatusCode statusCode, Dictionary<string, string> headers, string body) = await requestSender.SendGet().ConfigureAwait(false);
+            (HttpStatusCode statusCode, Dictionary<string, string>? headers, string body) = await requestSender.SendGet().ConfigureAwait(false);
             if (statusCode != HttpStatusCode.OK)
             {
                 return false;
@@ -287,7 +305,7 @@ namespace PlaygorundTestApp
             // send all requests
             RequestSender requestSender = new();
 
-            (HttpStatusCode statusCode, Dictionary<string, string> _, _) = await requestSender.SendGet().ConfigureAwait(false);
+            (HttpStatusCode statusCode, Dictionary<string, string>? _, _) = await requestSender.SendGet().ConfigureAwait(false);
             if (statusCode != HttpStatusCode.OK)
             {
                 return false;

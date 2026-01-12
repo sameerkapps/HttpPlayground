@@ -1,39 +1,39 @@
-﻿using HttpPlaygroundServer;
+﻿////////////////////////////////////////////////////////
+// Copyright (c) 2025 Sameer Khandekar                //
+// License: MIT License.                              //
+////////////////////////////////////////////////////////
+
+using HttpPlaygroundServer;
 using HttpPlaygroundServer.Model;
-using System;
-using System.Collections.Generic;
-using System.Formats.Tar;
-using System.Linq;
-using System.Text;
 using System.Text.Json;
-using System.Threading.Tasks;
 
 namespace PlaygorundTestApp.FunctionalTesting
 {
     internal class MultiServerSimulator : HttpRequestProcessor
     {
         /// <summary>
-        /// This wiill simulate server logic for cat and photo server
+        /// This wiill simulate server logic for both cat and photo server.
+        /// This is just a crude simulator fo test/demo purpose and no way close 
+        /// to any good logic.
         /// </summary>
         /// <param name="request"></param>
         /// <returns></returns>
         protected override Task<ResponseModel> SimulateServerHandling(RequestModel rs)
         {
-            // chk for cat
+            // Redirect for cat or photo based on the URL content
             if(rs.URL.Contains("cat"))
             {
                 return RetreiveCatResponse(rs);
             }
-            // chk for photo
 
             return RetreivePhotoResponse(rs);
         }
 
         /// <summary>
-        /// here is the simulation
+        /// Here is the simulation
         /// Cat with catid = -1 is bad request
         /// Cat with catid = 3 has photo url
-        /// Other cats do not have photo
+        /// Cat with anu other CatId does not have photo
         /// </summary>
         /// <param name="rs"></param>
         /// <returns></returns>
@@ -68,25 +68,29 @@ namespace PlaygorundTestApp.FunctionalTesting
         }
 
         /// <summary>
-        /// here is the simulation
-        /// POST
-        /// Cat with catid = -1 is bad request
-        /// Any other cat id works
+        /// Here is the simulation for cat response
         /// GET
         /// Cat with catid = -1 is bad request
         /// Any other cat id works
+        /// 
+        /// POST
+        /// Cat with catid = -1 is bad request
+        /// Any other cat id works
+        /// 
+        /// PATCH
+        /// Any cat ID works
         /// </summary>
         /// <param name="rs"></param>
         /// <returns></returns>
-
         private Task<ResponseModel> RetreiveCatResponse(RequestModel rs)
         {
-            // if it ends with -1, return 400
-            // return cat
-
+            // response is based on method
             if(rs.Verb == HttpMethod.Get.Method)
             {
+                // get the id of the cat
                 int catEndInd = rs.URL.IndexOf("cats", StringComparison.InvariantCultureIgnoreCase) + 4;
+                // if cat id is -1, return 404
+                // FYI rs.URL.Remove(catEndInd) is used to remove cat id from the URL. So all response files can stay in one folder
                 if (rs.URL.Contains("-1"))
                 {
                     return base.RetrieveByFile("404.json", rs.URL.Remove(catEndInd));
@@ -98,6 +102,9 @@ namespace PlaygorundTestApp.FunctionalTesting
             }
             else if(rs.Verb == HttpMethod.Post.Method)
             {
+                // when creating a cat, check the id of the cat from the body.
+                // and return appropriate file
+
                 CatModel? catModel = JsonSerializer.Deserialize<CatModel?>(rs.Body);
 
                 string responseFile = (catModel?.Id == -1) ? "400.json" : "CatPost.json";
@@ -106,6 +113,7 @@ namespace PlaygorundTestApp.FunctionalTesting
             }
             else
             {
+                // else patch is called.
                 return base.RetrieveByFile("Patch.json");
             }
         }

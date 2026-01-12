@@ -31,7 +31,7 @@ internal class Program
 
         // instantiate and run the server
         HttpPlaygoundServer httpTestListener = new();
-        Task httpListener = Task.Run(() => httpTestListener.StartHttpListner(serverStarted, cts.Token));
+        Task httpListener = Task.Run(() => httpTestListener.StartServer(serverStarted, cts.Token));
 
         // wait for server to start
         serverStarted.Wait();
