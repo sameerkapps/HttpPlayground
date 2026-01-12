@@ -1,166 +1,229 @@
+# HttpPlaygroundServer
+
+Enables **functional testing of HTTP client workflows** using a local server that records request–response pairs and provides the ability to verify call sequences.
 
 ---
 
-# Http Playground Server
+## Functional testing: the primary use case
 
-This facilitates functional testing on local machine. It provides minimalist API with flixibility for customization. It provides a lightweight local HTTP server to accept requests, send response and provides ability to validate the workflow of a function. It also provides simulation of server logic and logging of the request (URL, headers, body).
-It allows you to simulate various scenarios without the overhead of running a full web service or third party APIs
+HttpPlaygroundServer is designed for **“mini” functional testing** of HTTP client workflows—especially when your code calls **multiple backends** (e.g., your API + a 3rd‑party API) and you want to validate:
 
----
+- **Call order** (sequence of requests)
+- **Branching behavior** (different sequences based on conditions)
+- **Real HTTP plumbing** (URLs, headers, serialization) without a live backend
+- **Server simulation** (custom logic or file-based responses)
 
-## Features
-
-* 🚀 Run a lightweight HTTP test server locally
-* 🚀 Provides collection of request responses for validation
-* 🚀 Provides 
-* 📜 Automatically logs request URL, headers, and body
-* 📁 Stores each request in a timestamped JSON file
-* 🔁 Returns mock responses based on files in a *Responses* folder
-* 🧪 Simulates various HTTP results for testing and automation
+This package is intended for **console apps and custom harnesses** (it does not require or integrate with xUnit/NUnit).
 
 ---
 
-# What's new in 2.0
-* `HttpPlaygroundServer` has a new property `RequestResponses`
-This list exposes the sequenence of requests and responses in the order of the reqeusts sent. This can be used to validate the workflow.
+## Installation
 
-* `HttpPlaygroundServer` has a new method `ClearRequestResponses`
-This will clear the Requests and responses that are stored
-
-* `StartHttpListner` is renamed to `StartServer`
-This is to provide clarity.
-
-* `HttpPlaygroundServer` has a new method `StopServer`
-This will stop the server and clean up ports.
-
-* `HttpPlaygroundServer` has a new property `IsRequestLoggingEnabled`
-This determines if the requests should be logged to disk or not. It is `true` by default.
-
-# Breaking Changes (from 1.0)
-
-* Query-based response selection (`?respFile=`) has been removed.
-New version provides server based simulation. So this parameter is now redundant.
-* StartHttpListner has been renamed to StartServer
-This is to provide clarity.
-
-# How it works
-
-When the server receives an HTTP request:
-
-1. The request is logged to disk based on the value of `IsRequestLoggingEnabled`
- If needed, it creates a folder structure based on the URL path.
-2. The request is stored in `RequestResponses` property for workflow validation.
-3. Then it calls virtual method `SimulateServerHandling` to process the request.
-By default this method will return response based on the URL and Verb. A class inherited from `HttpRequestProcessor` can override thsi method to simulate server behavior and provide response based on another file or built by code.
-4. The returned response in updated in the `RequestResponses` collection.
-
-## Default behavior
-
-1. When request is received, the server looks for a response file corresponding to verb and URL path in the **Responses** subfolder.
-2. If found, the file is used to construct the response.
-3. If not found, a default success response is returned.
-
-**Example folder layout for `d:/temp` and request to `/Pets/Cats`:**
-
-```
-d:/temp/Pets/Cats/
-    Requests/
-    Responses/
+```bash
+dotnet add package sameerk.HttpPlaygroundServer
 ```
 
 ---
 
-# How to Use
+## Functional testing with server simulation (sample)
 
-### 1. Create a Console App
+This is a simplified excerpt of the sample you provided. It demonstrates:
 
-### 2. Install the NuGet Package
+- Starting the playground server with a **custom simulator**
+- Running a workflow twice (photo missing vs. photo available)
+- Verifying the **sequence of recorded request–response pairs** via `RequestResponses`
 
-```
-sameerk.HttpPlaygroundServer
-```
-
-### 3. Ensure Main is `async`
+### Start the server and run functional workflows
 
 ```csharp
-static async Task Main(string[] args)
+/// <summary>
+/// "Mini" functional testing + server simulation:
+/// Tests CatManager.CreateCatWithPhoto which calls a backend API + external photo API.
+/// Verifies requests are called in a certain order based on conditions.
+/// </summary>
+internal class FunctionalTestingWithServerSimulation
+{
+    private static HttpPlaygoundServer _playgroundServer = new(new MultiServerSimulator());
+
+    internal static async Task Run()
+    {
+        CancellationTokenSource cts = new();
+        ManualResetEventSlim serverStarted = new();
+
+        // optional: disable request logging to disk
+        _playgroundServer.IsRequestLoggingEnabled = false;
+
+        _ = Task.Run(async () =>
+            await _playgroundServer.StartServer(serverStarted, cts.Token).ConfigureAwait(false)
+        );
+
+        serverStarted.Wait();
+
+        // Workflow: photo NOT available
+        bool result = await Test_Post_Cat_Valid_Id_No_Photo().ConfigureAwait(false);
+        Console.WriteLine($"{(result ? string.Empty : "--- FAILED- -->")} Test_Post_Cat_Valid_Id_No_Photo {result}");
+
+        // Workflow: photo available
+        result = await Test_Post_Cat_Valid_Id_And_Photo().ConfigureAwait(false);
+        Console.WriteLine($"{(result ? string.Empty : "--- FAILED- -->")} Test_Post_Cat_Valid_Id_And_Photo {result}");
+
+        cts.Cancel();
+        _playgroundServer.StopServer();
+    }
+
+    private static async Task<bool> Test_Post_Cat_Valid_Id_No_Photo()
+    {
+        _playgroundServer.ClearRequestResponses();
+
+        ServerConfig.StorageFolder = Path.Combine(Directory.GetCurrentDirectory(), "TestData/Functional");
+
+        // Route 3rd-party API client to the playground server
+        PhotoClient.Instance.BaseUrl = ServerConfig.HostName;
+        PhotoClient.Instance.Port = ServerConfig.Port;
+
+        CatManager catCaller = new();
+        HttpStatusCode result = await catCaller.CreateCatWithPhoto(1, "No Photo").ConfigureAwait(false);
+
+        if (result != HttpStatusCode.Created) return false;
+
+        // Verify call sequence (POST -> GET)
+        return (_playgroundServer.RequestResponses.Count == 2 &&
+            ValidateRequest(_playgroundServer.RequestResponses[0].Item1, HttpMethod.Post, RequestSender.RestPath) &&
+            ValidateRequest(_playgroundServer.RequestResponses[1].Item1, HttpMethod.Get, PhotoClient.RelativeURL + "/1"));
+    }
+
+    private static async Task<bool> Test_Post_Cat_Valid_Id_And_Photo()
+    {
+        _playgroundServer.ClearRequestResponses();
+
+        ServerConfig.StorageFolder = Path.Combine(Directory.GetCurrentDirectory(), "TestData/Functional");
+
+        PhotoClient.Instance.BaseUrl = ServerConfig.HostName;
+        PhotoClient.Instance.Port = ServerConfig.Port;
+
+        CatManager catCaller = new();
+        HttpStatusCode result = await catCaller.CreateCatWithPhoto(3, "With Photo").ConfigureAwait(false);
+
+        if (result != HttpStatusCode.OK) return false;
+
+        // Verify call sequence (POST -> GET -> PATCH)
+        return (_playgroundServer.RequestResponses.Count == 3 &&
+            ValidateRequest(_playgroundServer.RequestResponses[0].Item1, HttpMethod.Post, RequestSender.RestPath) &&
+            ValidateRequest(_playgroundServer.RequestResponses[1].Item1, HttpMethod.Get, PhotoClient.RelativeURL + "/3") &&
+            ValidateRequest(_playgroundServer.RequestResponses[2].Item1, HttpMethod.Patch, RequestSender.RestPath));
+    }
+
+    private static bool ValidateRequest(RequestModel req, HttpMethod verb, string urlEnd)
+        => req.Verb == verb.Method && req.URL.EndsWith(urlEnd);
+}
 ```
 
-### 4. Start the Server and wait for it to start
+---
+
+## Server simulation: custom logic + file-based responses
+
+HttpPlaygroundServer supports server simulation by letting you plug in a request processor. The example below shows a **multi-server simulator** that routes requests to either:
+
+- **Cat API simulation** (file-based responses via `RetrieveByFile(...)`)
+- **Photo API simulation** (simple in-memory logic)
+
+### MultiServerSimulator (excerpt)
 
 ```csharp
-            CancellationTokenSource cts = new CancellationTokenSource();
-            // Server will trigger this after starting
-            ManualResetEventSlim serverStarted = new();
-            // disable request logging
-            _playgroundServer.IsRequestLoggingEnabled = false;
-
-            // run it in a different task/thread
-            _ = Task.Run(async () => { await _playgroundServer.StartServer(serverStarted, cts.Token).ConfigureAwait(false); });
-
-            // wait for the server to start
-            serverStarted.Wait();
-```
-
-5. Testing goes here
-
-```CSharp
-        private static async Task<bool> Test_Post_Cat_Valid_Id_No_Photo()
+internal class MultiServerSimulator : HttpRequestProcessor
+{
+    protected override Task<ResponseModel> SimulateServerHandling(RequestModel rs)
+    {
+        // Redirect for cat or photo based on URL content
+        if (rs.URL.Contains("cat"))
         {
-            // --- Arrange ---
-            // Clear all responses
-            _playgroundServer.ClearRequestResponses();
-
-            // set the storage folder
-            string storageFolder = Path.Combine(Directory.GetCurrentDirectory(), "TestData/Functional");
-            ServerConfig.StorageFolder = storageFolder;
-
-            // Set Third party API to the mock server base
-            PhotoClient.Instance.BaseUrl = ServerConfig.HostName;
-            PhotoClient.Instance.Port = ServerConfig.Port;
-
-            // --- Act ---
-            CatManager catCaller = new();
-            HttpStatusCode result = await catCaller.CreateCatWithPhoto(1, "No Photo").ConfigureAwait(false);
-
-            // --- Assert ---
-            if (result != HttpStatusCode.Created)
-            {
-                return false;
-            }
-
-            // functional testing to see if there was correct call sequence
-            return (_playgroundServer.RequestResponses.Count == 2 &&
-                ValidateRequest(_playgroundServer.RequestResponses[0].Item1, HttpMethod.Post, RequestSender.RestPath) &&
-                ValidateRequest(_playgroundServer.RequestResponses[1].Item1, HttpMethod.Get, PhotoClient.RelativeURL + "/1"));
+            return RetreiveCatResponse(rs);
         }
 
+        return RetreivePhotoResponse(rs);
+    }
+
+    private Task<ResponseModel> RetreivePhotoResponse(RequestModel rs)
+    {
+        ResponseModel rm = new();
+        rm.Headers.Add("Content-Type", "plain/text; charset=utf-8");
+
+        int catIdInd = rs.URL.LastIndexOf("/", StringComparison.InvariantCultureIgnoreCase) + 1;
+        string catId = rs.URL.Substring(catIdInd);
+
+        if (catId == "-1")
+        {
+            rm.Body = "Not valid";
+            rm.StatusCode = HttpStatusCode.BadRequest;
+        }
+        else if (catId == "3")
+        {
+            rm.Body = $"https://yourcatphoto/Cat{catId}";
+            rm.StatusCode = HttpStatusCode.OK;
+        }
+        else
+        {
+            rm.StatusCode = HttpStatusCode.NotFound;
+            rm.Body = null;
+        }
+
+        var ret = new Task<ResponseModel>(() => rm);
+        ret.RunSynchronously();
+        return ret;
+    }
+
+    private Task<ResponseModel> RetreiveCatResponse(RequestModel rs)
+    {
+        if (rs.Verb == HttpMethod.Get.Method)
+        {
+            int catEndInd = rs.URL.IndexOf("cats", StringComparison.InvariantCultureIgnoreCase) + 4;
+
+            if (rs.URL.Contains("-1"))
+            {
+                return base.RetrieveByFile("404.json", rs.URL.Remove(catEndInd));
+            }
+
+            return base.RetrieveByFile("CatGet.json", rs.URL.Remove(catEndInd));
+        }
+        else if (rs.Verb == HttpMethod.Post.Method)
+        {
+            CatModel? catModel = JsonSerializer.Deserialize<CatModel?>(rs.Body);
+            string responseFile = (catModel?.Id == -1) ? "400.json" : "CatPost.json";
+            return base.RetrieveByFile(responseFile);
+        }
+        else
+        {
+            return base.RetrieveByFile("Patch.json");
+        }
+    }
+}
 ```
 
-6. Shutdown the server
-
-```CSharp
-            // cancel the server listening operation
-            cts.Cancel();
-
-            // Cleanup
-            _playgroundServer.StopServer();
-```
+**Why this matters for functional testing:** you can simulate realistic backend behaviors (including branching) while still keeping the system local and deterministic.
 
 ---
 
-## Sample Code
+## What to verify in functional tests
 
-Sample code demonstrating how to set up and use the Http Playground Server is available in this repository:
+HttpPlaygroundServer **records** request–response pairs; your harness verifies behavior.
 
-🔗 **GitHub:** https://github.com/sameerkapps/HttpPlayground
+Typical checks:
+- **Sequence:** POST → GET (photo missing), POST → GET → PATCH (photo available)
+- **Count:** expected number of calls
+- **Targets:** correct endpoint path suffixes
+- **Verb correctness:** POST/GET/PATCH as expected
 
-The sample project includes:
+---
 
-* How to perform functional testing
-* How to simulate Server logic
-* How to configure the `ServerConfig` options  
-* How to organize your `Requests` and `Responses` folders
-* Example mock response files  
-* A minimal console app you can copy and adapt for your own tests
-* A Test app with a wide range of scenarios
+## Notes
+
+- Use `ClearRequestResponses()` before each workflow run.
+- You can enable/disable disk logging via `IsRequestLoggingEnabled`.
+- `ServerConfig.StorageFolder` controls where file-based responses and logs live.
+
+---
+
+## Source and samples
+
+GitHub repository (source + console samples):
+https://github.com/sameerkapps/HttpPlayground
