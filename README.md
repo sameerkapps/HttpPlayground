@@ -1,7 +1,7 @@
 # Overview
 
-This repository contains two solutions and four projects that together demonstrate how to use, test, and develop the **HttpPlaygroundServer** NuGet package.  
-If you're looking for a lightweight local HTTP server for logging requests and returning mock responses, this repository provides both the package source and example usage.
+This repository contains two solutions and five projects that together demonstrate how to use, test, and develop the **HttpPlaygroundServer** NuGet package.  
+If you're looking for a pakcage for Functional testing while simulating server logic and logging requests, you have come to the righ repository. This repository provides both the package source and example usage.
 
 ---
 
@@ -22,8 +22,9 @@ Before running or building the projects, ensure you have:
 
 /
 ├── PlaygroundServerNuGetSample.sln
+│   ├── FunctionalTestingApp
 │   ├── PlaygroundServerApp
-│   └── PlaygroundSampleApp
+│   └── PlaygroundSampleApp   
 │
 └── HttpPlaygroundServer.sln
 ├── HttpPlaygroundServer
@@ -39,6 +40,9 @@ This solution demonstrates how to **consume and use** the `HttpPlaygroundServer`
 
 ## Projects
 
+### FunctionalTestingApp
+A console app the hosts the Http Playground Server using the NuGet package and also demonstrates how to run functional tests using it.
+
 ### PlaygroundServerApp
 A console app that hosts the Http Playground Server using the NuGet package.
 
@@ -47,9 +51,17 @@ A console app that sends sample HTTP requests to the server after it starts.
 
 ---
 
-## Running the Sample
+## Running the Functional Testing Sample
 
-Both applications must run **simultaneously**.
+1. Open **PlaygroundServerNuGetSample.sln**.  
+2. Select `FunctionalTestingApp` as startup project.
+3. Run the solution. 
+It will display the result of the functional testing. You can inspect the code to see how it work.
+
+## Running the other Sample
+This demos how server can be run independently in an app. With that you can use it to test apps from other languages.
+
+To see the functionality of both server and the caller, both applications must run **simultaneously**.
 
 ### Steps
 
@@ -120,13 +132,15 @@ This contains all server logic, request logging, response file resolution, and c
 ### HttpPlaygroundTestApp
 A console application for manually testing different server behaviors, including:
 
+- Servre simulation
+- Functional validation using workflow
 - All major HTTP verbs  
 - Requests with and without response files  
 - Selecting custom response files via the `respFile` query parameter  
 - Error-handling scenarios  
 - Various combinations useful for automated testing  
 
-Use this app as a reference for building your own integration tests.
+Use this app as a reference for building your own functional and other tests.
 
 ---
 
