@@ -132,7 +132,7 @@ This contains all server logic, request logging, response file resolution, and c
 ### HttpPlaygroundTestApp
 A console application for manually testing different server behaviors, including:
 
-- Servre simulation
+- Server simulation
 - Functional validation using workflow
 - All major HTTP verbs  
 - Requests with and without response files  
